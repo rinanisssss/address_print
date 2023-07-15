@@ -24,14 +24,34 @@ POST_CARD = {
 }
 
 
-def main():
-    data = "3642452,小川 香織,栃木県国立市戸山9丁目8番11号"
-    postal_code, name, address = data.split(",")
+def draw_address(c, address):
+    font_size = POST_CARD["address_rect"][3] / len(address)
+    c.setFont("HeiseiMin-W3", font_size)
 
-    # サイズを指定してインスタンスを生成
-    c = canvas.Canvas("output_file/output.pdf", POST_CARD["size"])
+    # 氏名の位置座標をPDF座標に変換
+    x_pdf = POST_CARD["address_rect"][0] + POST_CARD["size"][0] + POST_CARD["address_rect"][2] / 2
+    y_pdf = POST_CARD["address_rect"][1] + POST_CARD["size"][1] + POST_CARD["address_rect"][3]
 
-    # 枠と数字の隙間
+    # テキスト挿入
+    c.drawString(x_pdf, y_pdf, f"{address}")
+
+
+def draw_name(c, name):
+    name = f"{name} 様"
+
+    # フォント指定 枠内に納まるように文字数で決める
+    font_size = POST_CARD["name_rect"][3] / len(name)
+    c.setFont("HeiseiMin-W3", font_size)
+
+    # 氏名の位置座標をPDF座標に変換
+    x_pdf = POST_CARD["name_rect"][0] + POST_CARD["size"][0] + POST_CARD["name_rect"][2] / 2
+    y_pdf = POST_CARD["name_rect"][1] + POST_CARD["size"][1] + POST_CARD["name_rect"][3]
+
+    # テキスト挿入
+    c.drawString(x_pdf, y_pdf, f"{name}")
+
+
+def draw_code(c, postal_code):
     padding = 1.0 * mm
 
     # 郵便番号を追加
@@ -46,37 +66,33 @@ def main():
         # 番号を記述
         c.drawCentredString(x_pdf, y_pdf, number)
 
-    # 氏名を追加
-    name = f"{name} 様"
 
-    # フォント指定 枠内に納まるように文字数で決める
-    font_size = POST_CARD["name_rect"][3] / len(name)
-    c.setFont("HeiseiMin-W3", font_size)
+def main():
+    text_file_path = "output_file/output_text.pdf"
+    output_file_path = "output_file/output.pdf"
+    address_file_path = "input_file/address.csv"
 
-    # 氏名の位置座標をPDF座標に変換
-    x_pdf = POST_CARD["name_rect"][0] + POST_CARD["size"][0] + POST_CARD["name_rect"][2] / 2
-    y_pdf = POST_CARD["name_rect"][1] + POST_CARD["size"][1] + POST_CARD["name_rect"][3]
+    with open(file=address_file_path, mode="r", encoding="utf-8") as f:
+        text = f.read()
 
-    # テキスト挿入
-    c.drawString(x_pdf, y_pdf, f"{name}")
+    rows = text.split("\n")
 
-    # 住所を追加
-    # フォント指定 枠内に納まるように文字数で決める
-    font_size = POST_CARD["address_rect"][3] / len(address)
-    c.setFont("HeiseiMin-W3", font_size)
+    # サイズを指定してインスタンスを生成
+    c = canvas.Canvas(text_file_path, POST_CARD["size"])
 
-    # 氏名の位置座標をPDF座標に変換
-    x_pdf = POST_CARD["address_rect"][0] + POST_CARD["size"][0] + POST_CARD["address_rect"][2] / 2
-    y_pdf = POST_CARD["address_rect"][1] + POST_CARD["size"][1] + POST_CARD["address_rect"][3]
+    for data in rows:
+        postal_code, name, address = data.split(",")
 
-    # テキスト挿入
-    c.drawString(x_pdf, y_pdf, f"{address}")
+        draw_code(c, postal_code)
+        draw_name(c, name)
+        draw_address(c, address)
 
-    c.showPage()
+        c.showPage()
+
     c.save()
 
     # 結合するPDFを読み取り
-    text_pdf = PdfReader("output_file/output.pdf")
+    text_pdf = PdfReader(text_file_path)
     postcard_pdf = PdfReader("input_file/post_card.pdf")
 
     # 各1ページ目を結合
@@ -87,7 +103,7 @@ def main():
     # 保存
     out_pdf = PdfWriter()
     out_pdf.add_page(postcard_page)
-    out_pdf.write("output_file/output.pdf")
+    out_pdf.write(output_file_path)
 
 
 if __name__ == "__main__":
